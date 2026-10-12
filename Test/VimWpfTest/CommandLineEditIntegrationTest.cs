@@ -423,6 +423,39 @@ namespace Vim.UI.Wpf.UnitTest
                     ProcessNotation(@"/og<Home>d<C-j>");
                     Assert.Equal(_textBuffer.GetLine(1).Start, _textView.GetCaretPoint());
                 }
+
+                /// <summary>
+                /// A buffered key (here an ambiguous <Esc> mapping) is processed together with
+                /// the '/' that starts the search.  The resulting mode switch must not reset the
+                /// command line and the typed characters must not be reversed
+                /// </summary>
+                [WpfFact]
+                public void SearchAfterBufferedModeSwitch()
+                {
+                    Create("cat", "dog", "fish");
+                    _vimBuffer.Vim.GlobalKeyMap.AddKeyMapping("<Esc><Esc>", "<Esc>:nohlsearch<CR><Esc>", allowRemap: false, KeyRemapMode.Normal);
+                    ProcessNotation(@"<Esc>/");
+                    Assert.Equal("/", _marginControl.CommandLineTextBox.Text);
+                    ProcessNotation(@"dog");
+                    Assert.Equal("/dog", _marginControl.CommandLineTextBox.Text);
+                    Assert.Equal("dog", _incrementalSearch.CurrentSearchData.Pattern);
+                }
+
+                /// <summary>
+                /// Same as above but the way it happens in practice: the first <Esc> leaves insert
+                /// mode and the second one is buffered because of the <Esc><Esc> mapping
+                /// </summary>
+                [WpfFact]
+                public void SearchAfterLeavingInsertWithDoubleEscape()
+                {
+                    Create("cat", "dog", "fish");
+                    _vimBuffer.Vim.GlobalKeyMap.AddKeyMapping("<Esc><Esc>", "<Esc>:nohlsearch<CR><Esc>", allowRemap: false, KeyRemapMode.Normal);
+                    ProcessNotation(@"i<Esc><Esc>/");
+                    Assert.Equal("/", _marginControl.CommandLineTextBox.Text);
+                    ProcessNotation(@"dog");
+                    Assert.Equal("/dog", _marginControl.CommandLineTextBox.Text);
+                    Assert.Equal("dog", _incrementalSearch.CurrentSearchData.Pattern);
+                }
             }
         }
 

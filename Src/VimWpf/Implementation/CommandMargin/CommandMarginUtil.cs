@@ -51,7 +51,11 @@ namespace Vim.UI.Wpf.Implementation.CommandMargin
 
         internal static EditableCommand GetStatus(IVimBuffer vimBuffer, IMode currentMode, bool forModeSwitch)
         {
-            if (forModeSwitch)
+            // A mode switch cancels any incremental search.  If a search is active anyway it was
+            // started after the switch within the same key event, for example when a key buffered
+            // for a possible mapping (<Esc> of <Esc><Esc>) and the '/' are processed together.
+            // The search wins
+            if (forModeSwitch && !vimBuffer.IncrementalSearch.HasActiveSession)
             {
                 return GetStatusCommon(vimBuffer, currentMode);
             }
